@@ -20,7 +20,9 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Verify installation
-        run: nuclei -version
+        run: |
+          which nuclei
+          nuclei -version
 
       - name: Run Nuclei scan with full requests
         run: |
