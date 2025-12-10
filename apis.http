@@ -1,0 +1,14 @@
+POST /api/admin/addUser HTTP/1.1
+Host: demo.testfire.net
+accept: application/json
+Authorization: YW5OdGFYUm86WkdWdGJ6RXlNelE9OkU/Pz8/XA==
+Content-Type: application/json
+
+{ "firstname": "Bilbo", "lastname": "Baggins", "username": "bilbob", "password1": "S3l3ctS0methingStr0ng5AsP@ssword", "password2": "S3l3ctS0methingStr0ng5AsP@ssword" }
+
+---
+
+GET /api/account HTTP/1.1
+Host: demo.testfire.net
+accept: application/json
+Authorization: YW5OdGFYUm86WkdWdGJ6RXlNelE9OkU/Pz8/XA==
