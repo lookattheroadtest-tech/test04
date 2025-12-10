@@ -1,4 +1,4 @@
-name: Nuclei DAST Scan (from curl file)
+name: Nuclei DAST Scan
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     branches: [ main ]
 
 jobs:
-  nuclei-scan:
+  scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -14,42 +14,29 @@ jobs:
 
       - name: Extract URLs from curl commands
         run: |
-          grep -E '^ *curl' requests.txt | \
-            sed -E 's/.*(https?:\/\/[^ ]+).*/\1/' | \
-            sort -u > nuclei_targets.txt
-          echo "Targets extracted:"
+          grep -o 'https://[^"]*' requests.txt | sort -u > nuclei_targets.txt
+          echo "Targets to scan:"
           cat nuclei_targets.txt
 
-      - name: Install & Run Nuclei
+      - name: Run Nuclei Scan
         uses: projectdiscovery/nuclei-action@main
         with:
           urls: nuclei_targets.txt
-          # Use tags to load templates automatically from /home/runner/nuclei-templates
-          # No -t flags needed—avoids path resolution errors
           flags: |
-            -tags api,http
+            -tags api,http,cve,fuzz
             -H "Authorization: YW5OdGFYUm86WkdWdGJ6RXlNelE9OkU/Pz8/XA=="
             -H "accept: application/json"
             -c 50
             -rl 20
-            -irr  # Include redirects if needed
-          output: nuclei-report.jsonl
-          jsonl: true  # JSONL output for easy parsing
-
-      # Optional: Convert JSONL to SARIF for better integration (e.g., with GitHub CodeQL)
-      # - name: Convert to SARIF
-      #   if: always()
-      #   run: |
-      #     # Install nuclei-converter if not present (or use a custom script)
-      #     go install github.com/projectdiscovery/nuclei-converter@latest
-      #     nuclei-converter -i nuclei-report.jsonl -f sarif -o nuclei-report.sarif
+            -v           # verbose (optional, remove if too noisy)
+          output: nuclei-report.jsonl        # JSONL output file
+          json: true                         # ← this is the correct flag for JSONL
+          include-rr: true                   # include request/response in results (very useful for APIs)
 
       - name: Upload Nuclei Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nuclei-scan-report-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            nuclei-report.jsonl
-            # nuclei-report.sarif  # Uncomment if using SARIF conversion
-          retention-days: 14
+          name: nuclei-report-${{ github.run_number }}-${{ github.run_attempt }}
+          path: nuclei-report.jsonl
+          retention-days: 30
