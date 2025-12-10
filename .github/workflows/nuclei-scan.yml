@@ -14,27 +14,27 @@ jobs:
 
       - name: Extract URLs from curl commands
         run: |
-          # More robust extraction: grab URLs from curl lines, handle quotes
+          # Robust URL extraction (handles quotes/spaces)
           grep -oE 'https?://[^[:space:]]+' requests.txt | sort -u > nuclei_targets.txt
           echo "Targets to scan:"
           cat nuclei_targets.txt
 
       - name: Run Nuclei Scan
-        id: nuclei_scan  # ID for conditional SARIF upload
+        id: nuclei_scan  # For conditional SARIF upload
         uses: projectdiscovery/nuclei-action@main
         with:
           urls: nuclei_targets.txt
+          # Use flags for output to avoid buggy 'json' input
           flags: |
-            -tags api,http,cve,dast  # Swapped 'fuzz' for 'dast' (fuzz deprecated)
+            -tags api,http,cve,dast
             -H "Authorization: YW5OdGFYUm86WkdWdGJ6RXlNelE9OkU/Pz8/XA=="
             -H "accept: application/json"
             -c 50
             -rl 20
-            -v  # Verbose logging (remove if too noisy)
-          output: nuclei-report.jsonl
-          json: true  # Enables -j for JSONL output
-          omit-raw: false  # Includes request/response (replaces deprecated include-rr)
-          sarif-export: nuclei.sarif  # Explicit SARIF file (action handles -se flag)
+            -v  # Verbose (remove if noisy)
+            -jsonl  # JSONL output to {output} file
+            -format sarif  # SARIF format
+          output: nuclei-report.jsonl  # Base output file (JSONL + SARIF)
 
       - name: Upload JSONL Report
         if: always()
@@ -44,11 +44,17 @@ jobs:
           path: nuclei-report.jsonl
           retention-days: 30
 
-      # Optional: Upload SARIF to GitHub Security tab (for vuln alerts)
-      # - name: Upload SARIF
+      - name: Upload SARIF Report
+        if: always() && steps.nuclei_scan.outputs.sarif_exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuclei-sarif-report-${{ github.run_number }}
+          path: nuclei.sarif  # Action generates this
+          retention-days: 30
+
+      # Optional: Upload SARIF to GitHub Security tab
+      # - name: Upload SARIF to Security
       #   if: always() && steps.nuclei_scan.outputs.sarif_exists == 'true'
       #   uses: github/codeql-action/upload-sarif@v3
       #   with:
       #     sarif_file: nuclei.sarif
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
