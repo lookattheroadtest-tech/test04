@@ -9,49 +9,41 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract URLs from curl commands
+      - name: Extract URLs
         run: |
-          # Robust extraction for URLs in curl commands
-          grep -oE 'https?://[^[:space:]]+' requests.txt | sort -u > nuclei_targets.txt
-          echo "Targets to scan:"
-          cat nuclei_targets.txt
+          grep -oE 'https?://[^[:space:]"]+' requests.txt | sort -u > urls.txt
+          cat urls.txt
 
-      - name: Run Nuclei Scan
-        id: nuclei_scan
+      - name: Run Nuclei (working flags only)
         uses: projectdiscovery/nuclei-action@main
         with:
-          urls: nuclei_targets.txt
-          # Single-line flags to avoid YAML parsing issues with booleans/multi-line
-          flags: "-tags api,http,cve,dast -H 'Authorization: YW5OdGFYUm86WkdWdGJ6RXlNelE9OkU/Pz8/XA==' -H 'accept: application/json' -c 50 -rl 20 -v"
-          output: nuclei-report.jsonl
-          json: true  # Enables -jsonl: writes JSONL to output file
-          sarif-export: nuclei.sarif  # Enables -se: SARIF to specified file
-          omit-raw: false  # Includes full request/response in outputs
+          urls: urls.txt
+          # THIS IS THE ONLY COMBINATION THAT DOES NOT FAIL RIGHT NOW
+          flags: >-
+            -t cves/
+            -t vulnerabilities/
+            -t exposures/
+            -t misconfiguration/
+            -t http/
+            -H "Authorization: YW5OdGFYUm86WkdWdGJ6RXlNelE9OkU/Pz8/XA=="
+            -H "accept: application/json"
+            -c 30
+            -rl 10
+            -v
+          output: report.jsonl
+          json: true
+          omit-raw: false
+          sarif-export: report.sarif
 
-      - name: Upload JSONL Report
+      - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nuclei-jsonl-report-${{ github.run_number }}
-          path: nuclei-report.jsonl
+          name: nuclei-report-${{ github.run_number }}
+          path: |
+            report.jsonl
+            report.sarif
           retention-days: 30
-
-      - name: Upload SARIF Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: nuclei-sarif-report-${{ github.run_number }}
-          path: nuclei.sarif
-          retention-days: 30
-
-      # Optional: Upload SARIF to GitHub Security tab for vuln alerts
-      # - name: Upload SARIF to Security
-      #   if: always()
-      #   uses: github/codeql-action/upload-sarif@v3
-      #   with:
-      #     sarif_file: nuclei.sarif
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
