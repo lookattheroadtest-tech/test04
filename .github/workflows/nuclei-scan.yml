@@ -1,0 +1,43 @@
+name: Nuclei DAST Scan (from curl file)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  nuclei-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract URLs from curl commands
+        run: |
+          grep -E '^ *curl' requests.txt | \
+            sed -E 's/.*(https?:\/\/[^ ]+).*/\1/' | \
+            sort -u > nuclei_targets.txt
+          echo "Targets extracted:"
+          cat nuclei_targets.txt
+
+      - name: Install & Run Nuclei
+        uses: projectdiscovery/nuclei-action@main
+        with:
+          urls: nuclei_targets.txt
+          flags: |
+            -H "Authorization: YW5OdGFYUm86WkdWdGJ6RXlNelE9OkU/Pz8/XA=="
+            -H "accept: application/json"
+            -t cves/ -t vulnerabilities/ -t exposures/ -t misconfiguration/
+            -tags api,http
+            -c 50
+            -rl 20
+          output: nuclei-report.jsonl
+          jsonl: true
+
+      - name: Upload Nuclei Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuclei-scan-report-$(date +%Y%m%d-%H%M%S)
+          path: nuclei-report.jsonl
+          retention-days: 14
