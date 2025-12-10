@@ -3,47 +3,30 @@ name: Nuclei DAST Scan
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  scan:
+  nuclei-scan:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract URLs
+      - name: Install Nuclei
         run: |
-          grep -oE 'https?://[^[:space:]"]+' requests.txt | sort -u > urls.txt
-          cat urls.txt
+          curl -sL https://github.com/projectdiscovery/nuclei/releases/latest/download/nuclei-linux-amd64.zip -o nuclei.zip
+          unzip nuclei.zip
+          sudo mv nuclei /usr/local/bin/
 
-      - name: Run Nuclei (working flags only)
-        uses: projectdiscovery/nuclei-action@main
-        with:
-          urls: urls.txt
-          # THIS IS THE ONLY COMBINATION THAT DOES NOT FAIL RIGHT NOW
-          flags: >-
-            -t cves/
-            -t vulnerabilities/
-            -t exposures/
-            -t misconfiguration/
-            -t http/
-            -H "Authorization: YW5OdGFYUm86WkdWdGJ6RXlNelE9OkU/Pz8/XA=="
-            -H "accept: application/json"
-            -c 30
-            -rl 10
-            -v
-          output: report.jsonl
-          json: true
-          omit-raw: false
-          sarif-export: report.sarif
+      - name: Run Nuclei scan with full requests
+        run: |
+          mkdir -p scans
+          nuclei -list apis.http -json -o scans/nuclei-report.json
 
-      - name: Upload results
-        if: always()
+      - name: Upload scan reports
         uses: actions/upload-artifact@v4
         with:
-          name: nuclei-report-${{ github.run_number }}
-          path: |
-            report.jsonl
-            report.sarif
-          retention-days: 30
+          name: nuclei-reports
+          path: scans/
