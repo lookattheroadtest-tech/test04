@@ -18,7 +18,8 @@ jobs:
         run: |
           mkdir -p scans
           docker run --rm -v $PWD:/root/project projectdiscovery/nuclei:latest \
-            -list /root/project/apis.http -json -o /root/project/scans/nuclei-report.json
+            -list /root/project/apis.http \
+            -json-export /root/project/scans/nuclei-report.json
 
       - name: Upload scan reports
         uses: actions/upload-artifact@v4
