@@ -19,6 +19,9 @@ jobs:
           curl -sSfL https://install.projectdiscovery.io | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Verify installation
+        run: nuclei -version
+
       - name: Run Nuclei scan with full requests
         run: |
           mkdir -p scans
