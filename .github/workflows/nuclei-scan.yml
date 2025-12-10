@@ -24,20 +24,32 @@ jobs:
         uses: projectdiscovery/nuclei-action@main
         with:
           urls: nuclei_targets.txt
+          # Use tags to load templates automatically from /home/runner/nuclei-templates
+          # No -t flags needed—avoids path resolution errors
           flags: |
+            -tags api,http
             -H "Authorization: YW5OdGFYUm86WkdWdGJ6RXlNelE9OkU/Pz8/XA=="
             -H "accept: application/json"
-            -t cves/ -t vulnerabilities/ -t exposures/ -t misconfiguration/
-            -tags api,http
             -c 50
             -rl 20
+            -irr  # Include redirects if needed
           output: nuclei-report.jsonl
-          jsonl: true
+          jsonl: true  # JSONL output for easy parsing
+
+      # Optional: Convert JSONL to SARIF for better integration (e.g., with GitHub CodeQL)
+      # - name: Convert to SARIF
+      #   if: always()
+      #   run: |
+      #     # Install nuclei-converter if not present (or use a custom script)
+      #     go install github.com/projectdiscovery/nuclei-converter@latest
+      #     nuclei-converter -i nuclei-report.jsonl -f sarif -o nuclei-report.sarif
 
       - name: Upload Nuclei Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nuclei-scan-report-$(date +%Y%m%d-%H%M%S)
-          path: nuclei-report.jsonl
+          name: nuclei-scan-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            nuclei-report.jsonl
+            # nuclei-report.sarif  # Uncomment if using SARIF conversion
           retention-days: 14
