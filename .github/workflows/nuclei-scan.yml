@@ -1,7 +1,7 @@
 name: Nuclei DAST Scan (Docker)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # manual trigger
   push:
     branches:
       - main
@@ -14,12 +14,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Run Nuclei inside Docker, mounting your repo so it can read request files and write reports
       - name: Run Nuclei scan with Docker
         run: |
           mkdir -p scans
+          # Scan POST request
           docker run --rm -v $PWD:/root/project projectdiscovery/nuclei:latest \
-            -list /root/project/apis.http \
-            -json-export /root/project/scans/nuclei-report.json
+            -target /root/project/addUser.req \
+            -json-export /root/project/scans/addUser-report.json
+          
+          # Scan GET request
+          docker run --rm -v $PWD:/root/project projectdiscovery/nuclei:latest \
+            -target /root/project/account.req \
+            -json-export /root/project/scans/account-report.json
 
       - name: Upload scan reports
         uses: actions/upload-artifact@v4
