@@ -1,4 +1,4 @@
-name: Nuclei DAST Scan
+name: Nuclei DAST Scan (Docker)
 
 on:
   workflow_dispatch:
@@ -14,20 +14,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Nuclei
-        run: |
-          curl -sSfL https://install.projectdiscovery.io | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Verify installation
-        run: |
-          which nuclei
-          nuclei -version
-
-      - name: Run Nuclei scan with full requests
+      - name: Run Nuclei scan with Docker
         run: |
           mkdir -p scans
-          nuclei -list apis.http -json -o scans/nuclei-report.json
+          docker run --rm -v $PWD:/root/project projectdiscovery/nuclei:latest \
+            -list /root/project/apis.http -json -o /root/project/scans/nuclei-report.json
 
       - name: Upload scan reports
         uses: actions/upload-artifact@v4
