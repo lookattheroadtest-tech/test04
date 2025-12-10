@@ -16,9 +16,7 @@ jobs:
 
       - name: Install Nuclei
         run: |
-          curl -sL https://github.com/projectdiscovery/nuclei/releases/download/v3.2.9/nuclei_3.2.9_linux_amd64.tar.gz -o nuclei.tar.gz
-          tar -xvzf nuclei.tar.gz
-          sudo mv nuclei /usr/local/bin/
+          curl -sSfL https://install.projectdiscovery.io | sh
 
       - name: Run Nuclei scan with full requests
         run: |
