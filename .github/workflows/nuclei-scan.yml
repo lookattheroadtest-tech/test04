@@ -1,7 +1,7 @@
 name: Nuclei DAST Scan
 
 on:
-  workflow_dispatch:   # manual trigger
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -16,8 +16,8 @@ jobs:
 
       - name: Install Nuclei
         run: |
-          curl -sL https://github.com/projectdiscovery/nuclei/releases/latest/download/nuclei-linux-amd64 -o nuclei
-          chmod +x nuclei
+          curl -sL https://github.com/projectdiscovery/nuclei/releases/download/v3.2.9/nuclei_3.2.9_linux_amd64.tar.gz -o nuclei.tar.gz
+          tar -xvzf nuclei.tar.gz
           sudo mv nuclei /usr/local/bin/
 
       - name: Run Nuclei scan with full requests
